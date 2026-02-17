@@ -23,19 +23,18 @@ jobs:
         cd esp-idf
         ./install.sh
         . ./export.sh
-   
+   # Phase 3: Install ESP-Matter
+     - name: Install ESP-Matter
+       run: |
+         git clone --recursive https://github.com/espressif/esp-matter.git
+         cd esp-matter
 
-    # Phase 3: Install ESP-Matter
-    - name: Install ESP-Matter
-      run: |
-        git clone --depth 1 https://github.com/espressif/esp-matter.git
-        cd esp-matter
-        git submodule update --init --depth 1
-        cd connectedhomeip/connectedhomeip
-        ./scripts/checkout_submodules.py --platform esp32 linux --shallow
-        cd ../..
-        ./install.sh
-        . ~/esp-matter/export.sh
+    # Ensure all submodules are fully initialized
+         git submodule update --init --recursive
+
+    # Export environment
+         echo "ESP_MATTER_PATH=$PWD" >> $GITHUB_ENV
+     
 
     # Phase 4: Build firmware
     - name: Build firmware
