@@ -26,7 +26,7 @@ jobs:
       run: |
         git clone --recursive https://github.com/espressif/esp-idf.git
         cd esp-idf
-        git checkout v5.4.1
+        git checkout v5.4.2
         ./install.sh
         echo "IDF_PATH=$PWD" >> $GITHUB_ENV
 
