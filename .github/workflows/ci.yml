@@ -42,7 +42,7 @@ jobs:
         echo "IDF_PATH=$HOME/esp-idf" >> $GITHUB_ENV
         echo "IDF_CCACHE_ENABLE=1" >> $GITHUB_ENV
 
-    - name: Clone and setup ESP-Matter
+    - name: Clone and setup ESP-Matter with GN
       run: |
         cd ~
         git clone https://github.com/espressif/esp-matter.git
@@ -59,17 +59,20 @@ jobs:
         git submodule foreach --recursive git clean -ffd
         git submodule update --init --depth 1 --recursive
         
-        # DON'T run install.sh - it tries to build for Linux host
-        # cd connectedhomeip/connectedhomeip
-        # ./scripts/checkout_submodules.py --platform esp32 linux --shallow
-        # cd ../..
-        # ./install.sh
+        # Install GN and prepare build
+        cd connectedhomeip/connectedhomeip
+        ./scripts/checkout_submodules.py --platform esp32 linux --shallow
+        cd ../..
+        
+        # THIS is essential - prepares everything including GN
+        ./install.sh
         
         echo "ESP_MATTER_PATH=$HOME/esp-matter" >> $GITHUB_ENV
 
     - name: Build firmware for ESP32C3
       run: |
         source $HOME/esp-idf/export.sh
+        source $HOME/esp-matter/export.sh
         cd $HOME/esp-matter/examples/light
         idf.py set-target esp32c3
         idf.py build
