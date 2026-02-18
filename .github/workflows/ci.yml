@@ -10,50 +10,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Phase 1: Checkout repository
+    # Step 1: Checkout repository
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
-    # Phase 2: Setup Python 3.11
+    # Step 2: Setup Python 3.11
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.11
 
-    # Phase 3: Install system dependencies
+    # Step 3: Install system dependencies
     - name: Install system dependencies
       run: |
-        sudo apt update
+        sudo apt update && sudo apt upgrade -y
         sudo apt install -y git wget curl build-essential cmake ninja-build \
-        python3 python3-pip python3-venv libffi-dev libssl-dev dfu-util
+        python3 python3-pip python3-venv unzip libffi-dev libssl-dev dfu-util
 
-    # Phase 4: Install ESP-IDF (compatible with ESP-Matter)
+    # Step 4: Install ESP-IDF v5.4.1
     - name: Install ESP-IDF
       run: |
-        git clone https://github.com/espressif/esp-idf.git
+        cd $HOME
+        git clone --recursive https://github.com/espressif/esp-idf.git
         cd esp-idf
-        git checkout v5.4.2
+        git checkout v5.4.1
         git submodule update --init --recursive
         ./install.sh
         echo "IDF_PATH=$PWD" >> $GITHUB_ENV
-        echo "$PWD/tools/esp-idf-tools.py" >> $GITHUB_PATH
+        export IDF_CCACHE_ENABLE=1
 
-    # Phase 5: Build ESP-Matter example
+    # Step 5: Install ESP-Matter
+    - name: Install ESP-Matter
+      run: |
+        cd $HOME
+        git clone --depth 1 https://github.com/espressif/esp-matter.git
+        cd esp-matter
+        git submodule update --init --depth 1
+        cd connectedhomeip/connectedhomeip
+        ./scripts/checkout_submodules.py --platform esp32 linux --shallow
+        cd ../..
+        ./install.sh
+        echo "ESP_MATTER_PATH=$PWD" >> $GITHUB_ENV
+
+    # Step 6: Build Light example
     - name: Build Light example
       run: |
-        source $IDF_PATH/export.sh
-        cd examples/light
-        idf.py fullclean
-        idf.py set-target esp32c3
-        idf.py build
-
-
-    # Phase 5: Build firmware
-    - name: Build firmware
-      run: |
-        source $IDF_PATH/export.sh
-        source $ESP_MATTER_PATH/export.sh
-        cd $ESP_MATTER_PATH/examples/light
+        source $HOME/esp-idf/export.sh
+        source $HOME/esp-matter/export.sh
+        cd $HOME/esp-matter/examples/light
         idf.py set-target esp32c3
         idf.py build
 
