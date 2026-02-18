@@ -31,12 +31,32 @@ jobs:
         echo "IDF_PATH=$HOME/esp-idf" >> $GITHUB_ENV
         echo "IDF_CCACHE_ENABLE=1" >> $GITHUB_ENV
 
-    - name: Clone and setup ESP-Matter
+    - name: Clone and setup ESP-Matter (FIXED)
       run: |
         cd ~
-        git clone --depth 1 https://github.com/espressif/esp-matter.git
+        # Clone WITHOUT --recursive to avoid nested submodule issues
+        git clone https://github.com/espressif/esp-matter.git
         cd esp-matter
+        
+        # Clean before any submodule operations
+        git clean -ffd
+        git status
+        
+        # Update top-level submodules with depth 1
         git submodule update --init --depth 1
+        
+        # Clean all nested submodule directories to remove untracked files
+        find . -type d \( -name 'third_party' -o -name 'components' \) | while read dir; do
+          if [ -d "$dir/.git" ]; then
+            cd "$dir" && git clean -ffd && cd - > /dev/null
+          fi
+        done
+        
+        # Update nested submodules safely
+        git submodule foreach --recursive git clean -ffd
+        git submodule update --init --depth 1 --recursive
+        
+        # Run the Python script
         cd connectedhomeip/connectedhomeip
         ./scripts/checkout_submodules.py --platform esp32 linux --shallow
         cd ../..
