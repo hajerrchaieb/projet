@@ -1,0 +1,48 @@
+name: Test Light Example
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          git wget curl build-essential cmake ninja-build \
+          python3 python3-pip python3-venv unzip \
+          libffi-dev libssl-dev
+
+    - name: Setup ESP-IDF
+      run: |
+        git clone --recursive https://github.com/espressif/esp-idf.git
+        cd esp-idf
+        git checkout v5.4.1
+        git submodule update --init --recursive
+        ./install.sh
+        echo "IDF_PATH=$PWD" >> $GITHUB_ENV
+
+    - name: Clone ESP-Matter
+      run: |
+        git clone --recursive https://github.com/espressif/esp-matter.git
+
+    - name: Build Light Example
+      run: |
+        source $IDF_PATH/export.sh
+        cd esp-matter/examples/light
+        idf.py set-target esp32c3
+        idf.py build
+
+    - name: Upload firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: light-firmware
+        path: esp-matter/examples/light/build/*.bin
+
